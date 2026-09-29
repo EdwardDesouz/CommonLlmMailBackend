@@ -9,7 +9,9 @@ function saveEmail(email) {
 
 function getEmails({ dismissed = false, mailboxId = null } = {}) {
   return emails.filter(
-    (e) => e.dismissed === dismissed && (mailboxId === null || e.mailbox_id === mailboxId),
+    (e) =>
+      e.dismissed === dismissed &&
+      (mailboxId === null || e.mailbox_id === mailboxId),
   );
 }
 
@@ -24,13 +26,8 @@ function updateEmail(id, updates) {
   return email;
 }
 
+
 function syncMailboxEmails(mailboxId, currentMessages) {
-  const currentUids = new Set(currentMessages.map((m) => m.uid));
-
-  emails = emails.filter(
-    (e) => e.mailbox_id !== mailboxId || currentUids.has(e.uid),
-  );
-
   const existingUids = new Set(
     emails.filter((e) => e.mailbox_id === mailboxId).map((e) => e.uid),
   );

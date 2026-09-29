@@ -9,8 +9,8 @@ const MAILBOXES = [
     port: 993,
     tls: true,
     mode: 'fixed',
-    defaultModuleType: process.env.LINEX_EMAIL_MODULE,
-    allowedModules: [process.env.LINEX_EMAIL_MODULE],
+    touchUsername: 'LNXADMIN',
+    accountId: 'LINEHAUL',
   },
   {
     id: 'nnr_export',
@@ -20,8 +20,19 @@ const MAILBOXES = [
     port: 993,
     tls: true,
     mode: 'fixed',
-    defaultModuleType: process.env.NNR_EXPORT_EMAIL_MODULE,
-    allowedModules: [process.env.NNR_EXPORT_EMAIL_MODULE],
+    touchUsername: 'NNREXPAdmin',
+    accountId: 'NNR',
+  },
+    {
+    id: 'nnr_import',
+    host: process.env.NNR_IMPORT_EMAIL_HOST,
+    user: process.env.NNR_IMPORT_EMAIL_USERNAME,
+    password: process.env.NNR_IMPORT_EMAIL_PASSWORD,
+    port: 993,
+    tls: true,
+    mode: 'fixed',
+    touchUsername: 'NNRIMPAdmin',
+    accountId: 'NNR',
   },
   {
     id: 'test_agent',
@@ -31,8 +42,8 @@ const MAILBOXES = [
     port: 993,
     tls: true,
     mode: 'fixed',
-    defaultModuleType: process.env.TEST_AGENT_EMAIL_MODULE,
-    allowedModules: [process.env.TEST_AGENT_EMAIL_MODULE],
+    touchUsername: 'ADMIN',
+    accountId: 'KAIZEN',
   },
 ];
 
