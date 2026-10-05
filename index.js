@@ -26,6 +26,9 @@ function serializeEmail(e) {
     mailbox_username: mailbox ? mailbox.user : null,
     account_id: mailbox ? mailbox.accountId : null,
     touch_username: mailbox ? mailbox.touchUsername : null,
+    module_type: e.module_type,
+    module_type_needs_confirmation: e.module_type_needs_confirmation,
+    allowed_modules: e.allowed_modules,
   };
 }
 
@@ -126,13 +129,20 @@ app.get("/api/email/:id/attachments/:attId", (req, res) => {
 });
 
 app.post("/api/email/:id/notify-n8n", async (req, res) => {
-  const email = db.getEmailById(req.params.id);
-  if (!email) return res.status(404).json({ error: "Not found" });
-
+  console.log("notify-n8n v2 hit for email", req.params.id);
   try {
+    const email = db.getEmailById(req.params.id);
+    if (!email) return res.status(404).json({ error: "Not found" });
+
     const pdfAttachments = (email.attachments || []).filter(
       (att) => getFileType(att.filename, att.contentType) === "pdf",
     );
+
+    if (pdfAttachments.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "No PDF attachments to process", code: "NO_PDF" });
+    }
 
     const toBase64 = (content) => {
       if (Buffer.isBuffer(content)) return content.toString("base64");
@@ -157,15 +167,39 @@ app.post("/api/email/:id/notify-n8n", async (req, res) => {
     };
 
     console.log(
-      `[n8n] sending ${payload.attachments.length} PDF(s) for email ${email.id}, base64 lengths:`,
+      `[n8n] sending ${payload.attachments.length} PDF(s), base64 lengths:`,
       payload.attachments.map((a) => a.content_base64.length),
+      "url:",
+      process.env.N8N_WEBHOOK_URL,
     );
 
-    const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, payload);
+    const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, payload, {
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      timeout: 300000,
+    });
+
+    console.log("[n8n] response status:", n8nResponse.status);
+    console.log(
+      "[n8n] response data:",
+      JSON.stringify(n8nResponse.data, null, 2),
+    );
+
     res.json({ n8n_response: n8nResponse.data });
   } catch (err) {
-    console.error("n8n call failed:", err.message);
-    res.status(500).json({ error: "n8n request failed" });
+    console.error(
+      "notify-n8n failed:",
+      err.code,
+      err.message,
+      err.response?.status,
+      err.response?.data,
+    );
+    res.status(502).json({
+      error: "n8n request failed",
+      code: err.code,
+      status: err.response?.status,
+      detail: err.response?.data || err.message,
+    });
   }
 });
 
@@ -174,8 +208,16 @@ app.post("/api/email/:id/complete", (req, res) => {
   const email = db.getEmailById(req.params.id);
   if (!email) return res.status(404).json({ error: "Not found" });
 
-  const updated = db.updateEmail(req.params.id, { dismissed: true, status: "saved" });
-  res.json({ success: true, id: updated.id, dismissed: updated.dismissed, status: updated.status });
+  const updated = db.updateEmail(req.params.id, {
+    dismissed: true,
+    status: "saved",
+  });
+  res.json({
+    success: true,
+    id: updated.id,
+    dismissed: updated.dismissed,
+    status: updated.status,
+  });
 });
 
 app.post("/api/email/:id/dismiss", (req, res) => {
@@ -190,5 +232,5 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   pollAllMailboxes();
-  setInterval(pollAllMailboxes, 15_000);
+  setInterval(pollAllMailboxes, 30_000);   
 });

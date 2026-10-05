@@ -2,15 +2,26 @@ const { MAILBOXES } = require("../mailboxes");
 const { fetchUnreadFromMailbox } = require("./imapClient");
 const db = require("../db");
 
+let polling = false;
+
 async function pollAllMailboxes() {
-  const results = await Promise.allSettled(
-    MAILBOXES.map((mailbox) => pollOneMailbox(mailbox)),
-  );
-  results.forEach((result, i) => {
-    if (result.status === "rejected") {
-      console.error(`Poll failed for ${MAILBOXES[i].id}:`, result.reason);
-    }
-  });
+  if (polling) return; 
+  polling = true;
+  try {
+    const results = await Promise.allSettled(
+      MAILBOXES.map((mailbox) => pollOneMailbox(mailbox)),
+    );
+    results.forEach((result, i) => {
+      if (result.status === "rejected") {
+        console.error(
+          `Poll failed for ${MAILBOXES[i].id}:`,
+          result.reason?.message || result.reason,
+        );
+      }
+    });
+  } finally {
+    polling = false;
+  }
 }
 
 async function pollOneMailbox(mailbox) {
