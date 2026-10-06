@@ -28,6 +28,16 @@ function updateEmail(id, updates) {
 
 
 function syncMailboxEmails(mailboxId, currentMessages) {
+  const currentUids = new Set(currentMessages.map((m) => m.uid));
+
+  const removed = emails.filter(
+    (e) => e.mailbox_id === mailboxId && !currentUids.has(e.uid),
+  );
+  if (removed.length > 0) {
+    const removedIds = new Set(removed.map((e) => e.id));
+    emails = emails.filter((e) => !removedIds.has(e.id));
+  }
+
   const existingUids = new Set(
     emails.filter((e) => e.mailbox_id === mailboxId).map((e) => e.uid),
   );
@@ -38,7 +48,8 @@ function syncMailboxEmails(mailboxId, currentMessages) {
       added.push(saveEmail(msg));
     }
   }
-  return added;
+
+  return { added, removed };
 }
 
 module.exports = {

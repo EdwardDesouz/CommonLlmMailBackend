@@ -5,7 +5,7 @@ const db = require("../db");
 let polling = false;
 
 async function pollAllMailboxes() {
-  if (polling) return; 
+  if (polling) return;
   polling = true;
   try {
     const results = await Promise.allSettled(
@@ -25,9 +25,11 @@ async function pollAllMailboxes() {
 }
 
 async function pollOneMailbox(mailbox) {
+  // If this throws (network/IMAP error), sync below is skipped,
+  // so a failed fetch never wipes the existing list.
   const messages = await fetchUnreadFromMailbox(mailbox);
   console.log(
-    `Mailbox ${mailbox.id}: found ${messages.length} unread message(s)`,
+    `Mailbox ${mailbox.id}: found ${messages.length} message(s) in inbox`,
   );
 
   const records = messages.map((msg) => ({
@@ -45,10 +47,15 @@ async function pollOneMailbox(mailbox) {
     status: "unread",
   }));
 
-  const added = db.syncMailboxEmails(mailbox.id, records);
+  const { added, removed } = db.syncMailboxEmails(mailbox.id, records);
 
   added.forEach((rec) =>
     console.log(`Saved email "${rec.subject}" from ${mailbox.id}`),
+  );
+  removed.forEach((rec) =>
+    console.log(
+      `Removed email "${rec.subject}" from ${mailbox.id} (no longer in inbox)`,
+    ),
   );
 }
 
