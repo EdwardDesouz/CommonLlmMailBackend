@@ -2,10 +2,10 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const axios = require("axios");
 const db = require("./db");
 const { MAILBOXES } = require("./mailboxes");
 const { pollAllMailboxes } = require("./services/mailPoller");
+const { processEmail } = require("./services/n8nProcessor");
 
 const app = express();
 app.use(cors());
@@ -17,9 +17,11 @@ function serializeEmail(e) {
   const mailbox = MAILBOXES.find((m) => m.id === e.mailbox_id);
   return {
     id: e.id,
+    message_key: e.message_key,
     subject: e.subject,
     sender: e.sender,
     status: e.status,
+    n8n_status: e.n8n_status,
     attachment_count: e.attachment_count,
     received_date: e.received_date,
     mailbox_id: e.mailbox_id,
@@ -128,65 +130,43 @@ app.get("/api/email/:id/attachments/:attId", (req, res) => {
   res.send(att.content);
 });
 
+// Lightweight status check: the UI can poll this while n8n is still working.
+app.get("/api/email/:id/n8n-result", (req, res) => {
+  const email = db.getEmailById(req.params.id);
+  if (!email) return res.status(404).json({ error: "Not found" });
+
+  res.json({
+    id: email.id,
+    n8n_status: email.n8n_status, // pending | processing | done | failed | skipped
+    n8n_response: email.n8n_response,
+    n8n_error: email.n8n_error,
+  });
+});
+
+// Called when the user clicks a mail.
+// - already processed in the background -> returns the saved response instantly
+// - still processing -> waits for that same run (no duplicate n8n call)
+// - pending / failed -> processes now
+// Add ?force=true to re-run n8n even if a saved response exists.
 app.post("/api/email/:id/notify-n8n", async (req, res) => {
-  console.log("notify-n8n v2 hit for email", req.params.id);
+  const email = db.getEmailById(req.params.id);
+  if (!email) return res.status(404).json({ error: "Not found" });
+
+  const force = req.query.force === "true";
+
+  if (email.n8n_status === "done" && !force) {
+    return res.json({ n8n_response: email.n8n_response, cached: true });
+  }
+
   try {
-    const email = db.getEmailById(req.params.id);
-    if (!email) return res.status(404).json({ error: "Not found" });
-
-    const pdfAttachments = (email.attachments || []).filter(
-      (att) => getFileType(att.filename, att.contentType) === "pdf",
-    );
-
-    if (pdfAttachments.length === 0) {
+    const data = await processEmail(email.id, { force });
+    res.json({ n8n_response: data, cached: false });
+  } catch (err) {
+    if (err.code === "NO_PDF") {
       return res
         .status(400)
         .json({ error: "No PDF attachments to process", code: "NO_PDF" });
     }
-
-    const toBase64 = (content) => {
-      if (Buffer.isBuffer(content)) return content.toString("base64");
-      if (content && content.type === "Buffer" && Array.isArray(content.data)) {
-        return Buffer.from(content.data).toString("base64");
-      }
-      if (typeof content === "string") return content; // already base64
-      return "";
-    };
-
-    const payload = {
-      id: email.id,
-      sender: email.sender,
-      subject: email.subject,
-      received_date: email.received_date,
-      body: email.body || "",
-      attachments: pdfAttachments.map((att) => ({
-        filename: att.filename || "attachment.pdf",
-        contentType: att.contentType,
-        content_base64: toBase64(att.content),
-      })),
-    };
-
-    console.log(
-      `[n8n] sending ${payload.attachments.length} PDF(s), base64 lengths:`,
-      payload.attachments.map((a) => a.content_base64.length),
-      "url:",
-      process.env.N8N_WEBHOOK_URL,
-    );
-
-    const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, payload, {
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
-      timeout: 300000,
-    });
-
-    console.log("[n8n] response status:", n8nResponse.status);
-    console.log(
-      "[n8n] response data:",
-      JSON.stringify(n8nResponse.data, null, 2),
-    );
-
-    res.json({ n8n_response: n8nResponse.data });
-  } catch (err) {
     console.error(
       "notify-n8n failed:",
       err.code,
@@ -203,7 +183,6 @@ app.post("/api/email/:id/notify-n8n", async (req, res) => {
   }
 });
 
-// server.js — new endpoint
 app.post("/api/email/:id/complete", (req, res) => {
   const email = db.getEmailById(req.params.id);
   if (!email) return res.status(404).json({ error: "Not found" });
@@ -232,5 +211,5 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   pollAllMailboxes();
-  setInterval(pollAllMailboxes, 30_000);   
+  setInterval(pollAllMailboxes, 30_000);
 });
