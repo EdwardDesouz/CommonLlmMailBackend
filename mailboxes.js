@@ -45,6 +45,17 @@ const MAILBOXES = [
   //   touchUsername: "NNRIMPAdmin",
   //   accountId: "NNR",
   // },
+    // {
+  //   id: "nnr_import",
+  //   host: process.env.NNR_IMPORT_EMAIL_HOST,
+  //   user: process.env.NNR_IMPORT_EMAIL_USERNAME,
+  //   password: process.env.NNR_IMPORT_EMAIL_PASSWORD,
+  //   port: 993,
+  //   tls: true,
+  //   mode: "fixed",
+  //   touchUsername: "NNRIMPAdmin",
+  //   accountId: "NNR",
+  // },
   // {
   //   id: "FAF",
   //   host: process.env.FAF_EMAIL_HOST,
