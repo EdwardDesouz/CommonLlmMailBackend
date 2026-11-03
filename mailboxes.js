@@ -45,7 +45,7 @@ const MAILBOXES = [
   //   touchUsername: "NNRIMPAdmin",
   //   accountId: "NNR",
   // },
-    // {
+  // {
   //   id: "nnr_import",
   //   host: process.env.NNR_IMPORT_EMAIL_HOST,
   //   user: process.env.NNR_IMPORT_EMAIL_USERNAME,
@@ -78,17 +78,17 @@ const MAILBOXES = [
   //   touchUsername: "CSVADMIN",
   //   accountId: "CARGO",
   // },
-  //   {
-  //   id: "OPERATION",
-  //   host: process.env.OPERATION_EMAIL_HOST,
-  //   user: process.env.OPERATION_EMAIL_USERNAME,
-  //   password: process.env.OPERATION_EMAIL_PASSWORD,
-  //   port: 993,
-  //   tls: true,
-  //   mode: "fixed",
-  //   // touchUsername: "CSVADMIN",
-  //   // accountId: "CARGO",
-  // },
+  {
+    id: "OPERATION",
+    host: process.env.OPERATION_EMAIL_HOST,
+    user: process.env.OPERATION_EMAIL_USERNAME,
+    password: process.env.OPERATION_EMAIL_PASSWORD,
+    port: 993,
+    tls: true,
+    mode: "fixed",
+    // touchUsername: "ALLIANCE02",
+    accountId: "KAIZEN",
+  },
   // {
   //   id: 'test_agent',
   //   host: process.env.TEST_AGENT_EMAIL_HOST,
