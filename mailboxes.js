@@ -89,17 +89,17 @@ const MAILBOXES = [
     // touchUsername: "ALLIANCE02",
     accountId: "KAIZEN",
   },
-  // {
-  //   id: 'test_agent',
-  //   host: process.env.TEST_AGENT_EMAIL_HOST,
-  //   user: process.env.TEST_AGENT_EMAIL_USERNAME,
-  //   password: process.env.TEST_AGENT_EMAIL_PASSWORD,
-  //   port: 993,
-  //   tls: true,
-  //   mode: 'fixed',
-  //   touchUsername: 'ADMIN',
-  //   accountId: 'KAIZEN',
-  // },
+  {
+    id: 'test_agent',
+    host: process.env.TEST_AGENT_EMAIL_HOST,
+    user: process.env.TEST_AGENT_EMAIL_USERNAME,
+    password: process.env.TEST_AGENT_EMAIL_PASSWORD,
+    port: 993,
+    tls: true,
+    mode: 'fixed',
+    // touchUsername: 'ADMIN',
+    accountId: 'KAIZEN',
+  },
 ];
 
 module.exports = { MAILBOXES };
