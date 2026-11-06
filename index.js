@@ -143,11 +143,7 @@ app.get("/api/email/:id/n8n-result", (req, res) => {
   });
 });
 
-// Called when the user clicks a mail.
-// - already processed in the background -> returns the saved response instantly
-// - still processing -> waits for that same run (no duplicate n8n call)
-// - pending / failed -> processes now
-// Add ?force=true to re-run n8n even if a saved response exists.
+
 app.post("/api/email/:id/notify-n8n", async (req, res) => {
   const email = db.getEmailById(req.params.id);
   if (!email) return res.status(404).json({ error: "Not found" });
