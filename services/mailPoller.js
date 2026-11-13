@@ -5,7 +5,7 @@ const db = require("../db");
 let polling = false;
 
 async function pollAllMailboxes() {
-  if (polling) return; 
+  if (polling) return;
   polling = true;
   try {
     const results = await Promise.allSettled(
@@ -25,9 +25,12 @@ async function pollAllMailboxes() {
 }
 
 async function pollOneMailbox(mailbox) {
-  const messages = await fetchUnreadFromMailbox(mailbox);
+  // UIDs we already have, so only new mails are downloaded in full
+  const known = db.getUidsByMailbox(mailbox.id);
+  const { allUids, messages } = await fetchUnreadFromMailbox(mailbox, known);
+
   console.log(
-    `Mailbox ${mailbox.id}: found ${messages.length} unread message(s)`,
+    `Mailbox ${mailbox.id}: ${allUids.length} in inbox, ${messages.length} new`,
   );
 
   const records = messages.map((msg) => ({
@@ -45,10 +48,13 @@ async function pollOneMailbox(mailbox) {
     status: "unread",
   }));
 
-  const added = db.syncMailboxEmails(mailbox.id, records);
+  const { added, removed } = db.syncMailboxEmails(mailbox.id, allUids, records);
 
   added.forEach((rec) =>
     console.log(`Saved email "${rec.subject}" from ${mailbox.id}`),
+  );
+  removed.forEach((rec) =>
+    console.log(`Removed email "${rec.subject}" from ${mailbox.id}`),
   );
 }
 

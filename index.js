@@ -109,7 +109,8 @@ app.get("/api/email/:id/attachments", (req, res) => {
     filename: att.filename || `attachment-${i}`,
     type: getFileType(att.filename, att.contentType),
     size: att.content?.length || 0,
-    url: `http://localhost:${process.env.PORT || 4000}/api/email/${req.params.id}/attachments/${i}`,
+    // url: `http://localhost:${process.env.PORT || 4000}/api/email/${req.params.id}/attachments/${i}`,
+    url: `http://192.168.1.40:${process.env.PORT || 4000}/api/email/${req.params.id}/attachments/${i}`,
   }));
 
   res.json(attachments);
@@ -156,6 +157,9 @@ app.post("/api/email/:id/notify-n8n", async (req, res) => {
 
   try {
     const data = await processEmail(email.id, { force });
+    console.log(`[n8n] response for email ${email.id}:`);
+    console.dir(data, { depth: null, colors: true });
+
     res.json({ n8n_response: data, cached: false });
   } catch (err) {
     if (err.code === "NO_PDF") {
@@ -207,5 +211,5 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   pollAllMailboxes();
-  setInterval(pollAllMailboxes, 30_000);
+  setInterval(pollAllMailboxes, 15_000);
 });

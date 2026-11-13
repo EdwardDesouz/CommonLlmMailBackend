@@ -26,28 +26,32 @@ function updateEmail(id, updates) {
   return email;
 }
 
+// UIDs already stored for a mailbox, so only new mails are downloaded
+function getUidsByMailbox(mailboxId) {
+  return new Set(
+    emails.filter((e) => e.mailbox_id === mailboxId).map((e) => e.uid),
+  );
+}
 
-function syncMailboxEmails(mailboxId, currentMessages) {
-  const currentUids = new Set(currentMessages.map((m) => m.uid));
+// allUids   = every UID currently in the webmail Inbox
+// newRecords = full records, only for mails we have not stored yet
+function syncMailboxEmails(mailboxId, allUids, newRecords) {
+  const live = new Set(allUids);
 
+  // Mail that left the Inbox -> remove from the app
   const removed = emails.filter(
-    (e) => e.mailbox_id === mailboxId && !currentUids.has(e.uid),
+    (e) => e.mailbox_id === mailboxId && !live.has(e.uid),
   );
   if (removed.length > 0) {
     const removedIds = new Set(removed.map((e) => e.id));
     emails = emails.filter((e) => !removedIds.has(e.id));
   }
 
-  const existingUids = new Set(
-    emails.filter((e) => e.mailbox_id === mailboxId).map((e) => e.uid),
-  );
-
-  const added = [];
-  for (const msg of currentMessages) {
-    if (!existingUids.has(msg.uid)) {
-      added.push(saveEmail(msg));
-    }
-  }
+  // New mail -> add
+  const existing = getUidsByMailbox(mailboxId);
+  const added = newRecords
+    .filter((r) => !existing.has(r.uid))
+    .map((r) => saveEmail(r));
 
   return { added, removed };
 }
@@ -58,4 +62,5 @@ module.exports = {
   getEmailById,
   updateEmail,
   syncMailboxEmails,
+  getUidsByMailbox,
 };
