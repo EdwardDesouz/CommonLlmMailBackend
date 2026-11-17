@@ -1,5 +1,17 @@
 require("dotenv").config();
 
+const axios = require("axios");
+console.log("[startup] N8N_WEBHOOK_URL =", process.env.N8N_WEBHOOK_URL);
+
+axios.interceptors.request.use((c) => {
+  console.log(`[axios] -> ${c.method?.toUpperCase()} ${c.url}`);
+  return c;
+});
+axios.interceptors.response.use(
+  (r) => { console.log(`[axios] <- ${r.status} ${r.config.url}`); return r; },
+  (e) => { console.error(`[axios] xx ${e.config?.url} | ${e.code} | ${e.response?.status}`); return Promise.reject(e); }
+);
+
 const express = require("express");
 const cors = require("cors");
 const db = require("./db");
@@ -10,6 +22,10 @@ const { processEmail } = require("./services/n8nProcessor");
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use((req, res, next) => {
+  console.log(`[req] ${req.method} ${req.url}`);
+  next();
+});
 
 const VALID_MAILBOX_IDS = new Set(MAILBOXES.map((m) => m.id));
 
